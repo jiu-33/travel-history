@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍺 潮汕吃喝之旅 3.7-3.9</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f0f; color: #e0e0e0; }
+  
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 40px 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '🍺';
+    position: absolute;
+    font-size: 120px;
+    opacity: 0.08;
+    right: 20px;
+    top: 10px;
+  }
+  .header h1 { font-size: 28px; color: #fff; margin-bottom: 8px; }
+  .header .subtitle { color: #8892b0; font-size: 14px; }
+  .header .info-cards {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+  .header .info-card {
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: #ccd6f6;
+    backdrop-filter: blur(10px);
+  }
+  .header .info-card span { display: block; font-size: 11px; color: #8892b0; margin-bottom: 2px; }
+
+  .container { max-width: 680px; margin: 0 auto; padding: 20px 16px; }
+
+  .day-section {
+    margin-bottom: 32px;
+  }
+  .day-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid;
+  }
+  .day-header.day1 { border-color: #e94560; }
+  .day-header.day2 { border-color: #f5a623; }
+  .day-header.day3 { border-color: #00b4d8; }
+  .day-tag {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: #fff;
+  }
+  .day1 .day-tag { background: #e94560; }
+  .day2 .day-tag { background: #f5a623; color: #1a1a2e; }
+  .day3 .day-tag { background: #00b4d8; }
+  .day-header h2 { font-size: 18px; color: #fff; }
+  .day-header .date { font-size: 13px; color: #8892b0; margin-left: auto; }
+
+  .timeline {
+    position: relative;
+    padding-left: 28px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #2a2a3e;
+  }
+
+  .event {
+    position: relative;
+    margin-bottom: 16px;
+    background: #1a1a2e;
+    border-radius: 12px;
+    padding: 14px 16px;
+    border: 1px solid #2a2a3e;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .event:hover { transform: translateX(4px); border-color: #4a4a6e; }
+  .event::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 18px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid;
+  }
+  .day1 .event::before { border-color: #e94560; background: #1a1a2e; }
+  .day2 .event::before { border-color: #f5a623; background: #1a1a2e; }
+  .day3 .event::before { border-color: #00b4d8; background: #1a1a2e; }
+  .event.highlight::before { background: currentColor; }
+  .day1 .event.highlight::before { background: #e94560; border-color: #e94560; }
+  .day2 .event.highlight::before { background: #f5a623; border-color: #f5a623; }
+  .day3 .event.highlight::before { background: #00b4d8; border-color: #00b4d8; }
+
+  .event-time {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8892b0;
+    margin-bottom: 4px;
+  }
+  .event-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .event-title .emoji { margin-right: 6px; }
+  .event-details {
+    font-size: 12px;
+    color: #8892b0;
+    line-height: 1.6;
+  }
+  .event-details .tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.06);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+    margin-bottom: 4px;
+    font-size: 11px;
+  }
+  .event-details .rating { color: #f5a623; }
+  .event-details .price { color: #64ffda; }
+  .event-details .addr { color: #a0aec0; }
+
+  .event.transit {
+    background: transparent;
+    border: 1px dashed #2a2a3e;
+    padding: 8px 16px;
+  }
+  .event.transit .event-title { font-size: 13px; color: #8892b0; font-weight: 400; }
+
+  .sub-items {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #2a2a3e;
+  }
+  .sub-item {
+    padding: 6px 0;
+    font-size: 13px;
+    color: #ccd6f6;
+  }
+  .sub-item .sub-name { font-weight: 500; }
+  .sub-item .sub-detail { font-size: 11px; color: #8892b0; }
+
+  .stats {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    border: 1px solid #2a2a3e;
+  }
+  .stats h3 { font-size: 16px; color: #fff; margin-bottom: 12px; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .stat-item {
+    background: rgba(255,255,255,0.04);
+    padding: 10px 12px;
+    border-radius: 8px;
+    text-align: center;
+  }
+  .stat-item .emoji { font-size: 20px; }
+  .stat-item .label { font-size: 11px; color: #8892b0; margin-top: 4px; }
+  .stat-item .value { font-size: 14px; font-weight: 600; color: #fff; }
+
+  .footer {
+    text-align: center;
+    padding: 30px 20px;
+    font-size: 12px;
+    color: #4a4a6e;
+  }
+
+  @media (max-width: 480px) {
+    .header h1 { font-size: 22px; }
+    .container { padding: 16px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🍺 潮汕吃喝之旅</h1>
+  <div class="subtitle">活着干死了算 · 阿橘 × 酒酒 联合出品</div>
+  <div class="info-cards">
+    <div class="info-card"><span>📅 日期</span>3.7(周五) - 3.9(周日)</div>
+    <div class="info-card"><span>🏨 住宿</span>铂顿国际公寓·东海岸万象汇</div>
+    <div class="info-card"><span>✈️ 航班</span>周五下午到 → 周日17:55回京</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Day 1 -->
+  <div class="day-section">
+    <div class="day-header day1">
+      <span class="day-tag">DAY 1</span>
+      <h2>周五</h2>
+      <span class="date">3月7日</span>
+    </div>
+    <div class="timeline day1">
+      <div class="event highlight">
+        <div class="event-time">14:30</div>
+        <div class="event-title"><span class="emoji">🐔</span>创新土鸡火锅</div>
+        <div class="event-details">
+          <span class="tag rating">⭐4.8</span><span class="tag price">💰70元</span><br>
+          <span class="addr">📍 龙湖区东升村公塭鸿园北二巷1号</span><br>
+          ☎️ 13556445692 · ⏰ 10:00-01:30
+        </div>
+      </div>
+      <div class="event transit">
+        <div class="event-title">🚗 16:30 → 回酒店放行李（12分钟）</div>
+      </div>
+      <div class="event highlight">
+        <div class="event-time">18:30</div>
+        <div class="event-title"><span class="emoji">🦀</span>金二顺潮汕生腌（龙眼南分店）</div>
+        <div class="event-details">
+          <span class="tag rating">⭐4.7</span><span class="tag price">💰91元</span><br>
+          <span class="addr">📍 金平区龙眼园北区9栋105号</span><br>
+          ☎️ 13138422000 · ⏰ 10:00-02:00
+        </div>
+      </div>
+      <div class="event">
+        <div class="event-time">19:30</div>
+        <div class="event-title"><span class="emoji">🏛️</span>小公园开埠区 · 步行扫街</div>
+        <div class="sub-items">
+          <div class="sub-item">
+            <span class="sub-name">🥩 福合埕牛肉丸（福平路店）</span>
+            <div class="sub-detail">📍 金平区福平路93号 · ⭐4.6 · 💰75元</div>
+          </div>
+          <div class="sub-item">
+            <span class="sub-name">🫔 老妈宫粽球</span>
+            <div class="sub-detail">📍 金平区新关街1-7号 · ⭐4.4 · 💰20元</div>
+          </div>
+          <div class="sub-item">
+            <span class="sub-name">🍬 糖葱薄饼·林记</span>
+            <div class="sub-detail">📍 金平区升平路17号 · 💰3元</div>
+          </div>
+          <div class="sub-item">
+            <span class="sub-name">🍮 福合沟无米粿甜汤</span>
+            <div class="sub-detail">📍 金平区福平路20号 · ⭐4.6 · 💰21元</div>
+          </div>
+        </div>
+      </div>
+      <div class="event transit">
+        <div class="event-title">🚗 22:00 → 回酒店</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 2 -->
+  <div class="day-section">
+    <div class="day-header day2">
+      <span class="day-tag">DAY 2</span>
+      <h2>周六</h2>
+      <span class="date">3月8日</span>
+    </div>
+    <div class="timeline day2">
+      <div class="event highlight">
+        <div class="event-time">08:00</div>
+        <div class="event-title"><span class="emoji">🥟</span>行运龙凤茶楼（早茶）</div>
+        <div class="event-details">
+          <span class="tag rating">⭐4.7</span><span class="tag price">💰81元</span><br>
+          <span class="addr">📍 龙湖区珠池路59号清华熙园10栋401号</span><br>
+          ☎️ 19867803369 · ⏰ 08:00-21:00
+        </div>
+      </div>
+      <div class="event highlight">
+        <div class="event-time">10:30</div>
+        <div class="event-title"><span class="emoji">🔥</span>八合里潮汕鲜牛肉火锅（汕头总店）</div>
+        <div class="event-details">
+          <span class="tag rating">⭐4.7</span><span class="tag price">💰79元</span><br>
+          <span class="addr">📍 金平区黄岗路坪西2号</span><br>
+          ☎️ 0754-88708552 · ⏰ 10:00-24:00<br>
+          🥩 必点：吊龙、五花趾、匙柄、胸口朥
+        </div>
+      </div>
+      <div class="event">
+        <div class="event-time">13:00</div>
+        <div class="event-title"><span class="emoji">🏛️</span>小公园开埠区（白天）</div>
+        <div class="event-details"><span class="addr">骑楼建筑群 · 大清邮政 · 存心善堂</span></div>
+      </div>
+      <div class="event">
+        <div class="event-time">15:00</div>
+        <div class="event-title"><span class="emoji">🌊</span>西堤公园 → 海滨长廊</div>
+        <div class="event-details"><span class="addr">侨批纪念地 · 木栈道 · 海景</span></div>
+      </div>
+      <div class="event highlight">
+        <div class="event-time">16:30</div>
+        <div class="event-title"><span class="emoji">🍡</span>盛兴丸店（老店）· 非遗</div>
+        <div class="event-details">
+          <span class="tag rating">⭐4.6</span><span class="tag price">💰24元</span><br>
+          <span class="addr">📍 金平区月季园7栋102房</span><br>
+          ☎️ 13790839342 · ⏰ 至19:00
+        </div>
+      </div>
+      <div class="event highlight">
+        <div class="event-time">19:00</div>
+        <div class="event-title"><span class="emoji">🍜</span>家常牛肉 · 湿炒牛肉粿条</div>
+        <div class="event-details">
+          <span class="tag rating">⭐4.7</span><span class="tag price">💰34元</span><br>
+          <span class="addr">📍 龙湖区丹霞庄西区22幢</span><br>
+          ⏰ 至22:30
+        </div>
+      </div>
+      <div class="event highlight">
+        <div class="event-time">20:00</div>
+        <div class="event-title"><span class="emoji">🥩</span>林三满 · 汕头烤肉</div>
+        <div class="event-details">
+          <span class="tag rating">⭐4.6</span><span class="tag price">💰86元</span><br>
+          <span class="addr">📍 龙湖区长平东路丹霞庄西区101号（隔壁）</span><br>
+          ⏰ 11:00-02:00
+        </div>
+      </div>
+      <div class="event highlight">
+        <div class="event-time">21:30</div>
+        <div class="event-title"><span class="emoji">🦐</span>砂锅粥</div>
+        <div class="event-details">
+          官塘品鱻 · <span class="addr">📍 金平区永泰路5号</span> · ⭐4.6 · 💰62元<br>
+          或 普宁砂锅粥 · <span class="addr">📍 龙湖区珠江路7号</span> · ⭐4.6 · 💰63元
+        </div>
+      </div>
+      <div class="event transit">
+        <div class="event-title">🚗 23:00 → 回酒店</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 3 -->
+  <div class="day-section">
+    <div class="day-header day3">
+      <span class="day-tag">DAY 3</span>
+      <h2>周日</h2>
+      <span class="date">3月9日</span>
+    </div>
+    <div class="timeline day3">
+      <div class="event highlight">
+        <div class="event-time">08:00</div>
+        <div class="event-title"><span class="emoji">🥟</span>小吴肠粉（椰园店）</div>
+        <div class="event-details">
+          <span class="tag rating">⭐4.7</span><span class="tag price">💰17元</span><br>
+          <span class="addr">📍 金平区龙眼南路龙眼市场椰园4幢</span><br>
+          ☎️ 15817958357 · ⏰ 08:00-15:00<br>
+          ⚠️ 开门就去，这次必须吃到！
+        </div>
+      </div>
+      <div class="event highlight">
+        <div class="event-time">10:30</div>
+        <div class="event-title"><span class="emoji">🔥</span>天山牛肉火锅</div>
+        <div class="event-details">
+          <span class="tag rating">⭐4.8</span><span class="tag price">💰97元</span><br>
+          <span class="addr">📍 龙湖区练江路30号信基华庭南区104号</span><br>
+          ☎️ 13850439306 · ⏰ 11:00-02:00<br>
+          最后一顿火锅，放开吃
+        </div>
+      </div>
+      <div class="event transit">
+        <div class="event-title">🧳 12:30 → 回酒店收拾行李</div>
+      </div>
+      <div class="event transit">
+        <div class="event-title">🚗 14:00 → 出发去揭阳潮汕机场（约60分钟）</div>
+      </div>
+      <div class="event">
+        <div class="event-time">17:55</div>
+        <div class="event-title"><span class="emoji">✈️</span>飞回北京</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <h3>📊 战绩总览</h3>
+    <div class="stats-grid">
+      <div class="stat-item"><div class="emoji">🐔🐂</div><div class="value">×3</div><div class="label">火锅</div></div>
+      <div class="stat-item"><div class="emoji">🦀</div><div class="value">×1</div><div class="label">生腌</div></div>
+      <div class="stat-item"><div class="emoji">🥟</div><div class="value">×2</div><div class="label">肠粉/早茶</div></div>
+      <div class="stat-item"><div class="emoji">🍡</div><div class="value">×2</div><div class="label">丸子</div></div>
+      <div class="stat-item"><div class="emoji">🥩</div><div class="value">×1</div><div class="label">烤肉</div></div>
+      <div class="stat-item"><div class="emoji">🦐</div><div class="value">×1</div><div class="label">砂锅粥</div></div>
+      <div class="stat-item"><div class="emoji">🍜</div><div class="value">×1</div><div class="label">湿炒粿条</div></div>
+      <div class="stat-item"><div class="emoji">🫔</div><div class="value">×4</div><div class="label">扫街小吃</div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  🍺 酒酒 × 阿橘 · 活着干死了算<br>
+  3天14+顿，这不是旅游，这是胃的极限挑战
+</div>
+
+</body>
+</html>
