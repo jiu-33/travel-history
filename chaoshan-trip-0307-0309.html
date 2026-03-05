@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🍺 潮汕吃喝之旅 3.7-3.9</title>
-<script src="https://webapi.amap.com/maps?v=2.0&key=REDACTED"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f0f; color: #e0e0e0; }
@@ -23,6 +24,8 @@
   .map-tab.day1 { border-color: #e94560; } .map-tab.day2 { border-color: #f5a623; } .map-tab.day3 { border-color: #00b4d8; }
   .map-tab.active.day1 { background: #e94560; } .map-tab.active.day2 { background: #f5a623; color: #1a1a2e; } .map-tab.active.day3 { background: #00b4d8; }
   .map-container { width: 100%; height: 400px; border-radius: 12px; overflow: hidden; border: 1px solid #2a2a3e; }
+  /* 高德瓦片暗色滤镜 */
+  .leaflet-tile-pane { filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7); }
   .day-section { margin-bottom: 32px; }
   .day-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid; }
   .day-header.day1 { border-color: #e94560; } .day-header.day2 { border-color: #f5a623; } .day-header.day3 { border-color: #00b4d8; }
@@ -52,10 +55,9 @@
   .stat-item .emoji { font-size: 20px; } .stat-item .label { font-size: 11px; color: #8892b0; margin-top: 4px; } .stat-item .value { font-size: 14px; font-weight: 600; color: #fff; }
   .footer { text-align: center; padding: 30px 20px; font-size: 12px; color: #4a4a6e; }
   .custom-marker { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 700; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
-  .amap-info-content { background: #1a1a2e !important; color: #e0e0e0 !important; border-radius: 10px !important; border: 1px solid #2a2a3e !important; padding: 10px 14px !important; font-size: 13px; line-height: 1.5; }
-  .amap-info-content b { color: #fff; }
-  .amap-info-sharp { display: none; }
-  .amap-info-close { color: #8892b0 !important; }
+  .leaflet-popup-content-wrapper { background: #1a1a2e; color: #e0e0e0; border-radius: 10px; border: 1px solid #2a2a3e; }
+  .leaflet-popup-tip { background: #1a1a2e; }
+  .leaflet-popup-content { font-size: 13px; line-height: 1.5; } .leaflet-popup-content b { color: #fff; }
   @media (max-width: 480px) { .header h1 { font-size: 22px; } .container { padding: 16px 12px; } .map-container { height: 320px; } }
 </style>
 </head>
@@ -136,6 +138,22 @@
 <div class="footer">🍺 酒酒 × 阿橘 · 活着干死了算<br>3天14+顿，这不是旅游，这是胃的极限挑战</div>
 
 <script>
+// WGS84 -> GCJ-02 坐标转换（高德瓦片用 GCJ-02）
+var PI = Math.PI, ee = 0.00669342162296594323, a = 6378245.0;
+function outOfChina(lat, lng) { return lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271; }
+function transformLat(x, y) { var r = -100+2*x+3*y+0.2*y*y+0.1*x*y+0.2*Math.sqrt(Math.abs(x)); r+=(20*Math.sin(6*x*PI)+20*Math.sin(2*x*PI))*2/3; r+=(20*Math.sin(y*PI)+40*Math.sin(y/3*PI))*2/3; r+=(160*Math.sin(y/12*PI)+320*Math.sin(y*PI/30))*2/3; return r; }
+function transformLng(x, y) { var r = 300+x+2*y+0.1*x*x+0.1*x*y+0.1*Math.sqrt(Math.abs(x)); r+=(20*Math.sin(6*x*PI)+20*Math.sin(2*x*PI))*2/3; r+=(20*Math.sin(x*PI)+40*Math.sin(x/3*PI))*2/3; r+=(150*Math.sin(x/12*PI)+300*Math.sin(x/30*PI))*2/3; return r; }
+function wgs84ToGcj02(lat, lng) {
+  if (outOfChina(lat, lng)) return [lat, lng];
+  var dLat = transformLat(lng-105, lat-35), dLng = transformLng(lng-105, lat-35);
+  var radLat = lat/180*PI, magic = Math.sin(radLat);
+  magic = 1 - ee*magic*magic;
+  var sqrtMagic = Math.sqrt(magic);
+  dLat = (dLat*180)/((a*(1-ee))/(magic*sqrtMagic)*PI);
+  dLng = (dLng*180)/(a/sqrtMagic*Math.cos(radLat)*PI);
+  return [lat+dLat, lng+dLng];
+}
+
 const days = {
   1: {
     color: '#e94560',
@@ -176,78 +194,50 @@ const days = {
   }
 };
 
-// 高德地图初始化（暗色主题）
-const map = new AMap.Map('map', {
-  center: [116.71, 23.365],
-  zoom: 12,
-  mapStyle: 'amap://styles/dark',
-  features: ['bg', 'road', 'building', 'point']
-});
+// 高德瓦片（国内直接可用，不需要key验证）
+var map = L.map('map', { center: [23.365, 116.71], zoom: 12, attributionControl: false });
+L.tileLayer('https://wprd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&x={x}&y={y}&z={z}', {
+  subdomains: '1234', maxZoom: 18
+}).addTo(map);
 
-let currentLayers = [];
+var currentLayers = [];
 
-function createMarkerContent(num, color) {
-  return '<div class="custom-marker" style="background:' + color + '">' + num + '</div>';
+function createIcon(num, color) {
+  return L.divIcon({
+    className: '',
+    html: '<div class="custom-marker" style="background:' + color + '">' + num + '</div>',
+    iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16]
+  });
 }
 
 function showDay(day) {
   document.querySelectorAll('.map-tab').forEach(function(t) { t.classList.remove('active'); });
   document.querySelector('.map-tab.day' + day).classList.add('active');
-  // 清除上一次的覆盖物
-  currentLayers.forEach(function(l) { map.remove(l); });
+  currentLayers.forEach(function(l) { map.removeLayer(l); });
   currentLayers = [];
   var data = days[day];
-  var path = [];
+  var coords = [];
   data.spots.forEach(function(spot, i) {
-    var pos = new AMap.LngLat(spot.lng, spot.lat);
-    var marker = new AMap.Marker({
-      position: pos,
-      content: createMarkerContent(i + 1, data.color),
-      offset: new AMap.Pixel(-14, -14),
-      zIndex: 100
-    });
-    // 信息窗体
-    var infoWindow = new AMap.InfoWindow({
-      content: '<b>' + spot.name + '</b>' + (spot.detail ? '<br>' + spot.detail : ''),
-      offset: new AMap.Pixel(0, -18),
-      isCustom: false
-    });
-    marker.on('click', function() {
-      infoWindow.open(map, pos);
-    });
-    map.add(marker);
+    var gcj = wgs84ToGcj02(spot.lat, spot.lng);
+    var icon = createIcon(i + 1, data.color);
+    var popup = '<b>' + spot.name + '</b>' + (spot.detail ? '<br>' + spot.detail : '');
+    var marker = L.marker(gcj, { icon: icon }).addTo(map).bindPopup(popup);
     currentLayers.push(marker);
-    path.push(pos);
+    coords.push(gcj);
   });
-  // 虚线路径
-  var polyline = new AMap.Polyline({
-    path: path,
-    strokeColor: data.color,
-    strokeWeight: 3,
-    strokeOpacity: 0.7,
-    strokeStyle: 'dashed',
-    strokeDasharray: [8, 8],
-    lineJoin: 'round'
-  });
-  map.add(polyline);
+  var polyline = L.polyline(coords, { color: data.color, weight: 3, opacity: 0.7, dashArray: '8, 8' }).addTo(map);
   currentLayers.push(polyline);
-
-  // 箭头标记
-  for (var i = 0; i < path.length - 1; i++) {
-    var midLng = (path[i].getLng() + path[i+1].getLng()) / 2;
-    var midLat = (path[i].getLat() + path[i+1].getLat()) / 2;
-    var arrow = new AMap.Marker({
-      position: new AMap.LngLat(midLng, midLat),
-      content: '<div style="color:' + data.color + ';font-size:10px;opacity:0.8">→</div>',
-      offset: new AMap.Pixel(-6, -6),
-      clickable: false,
-      zIndex: 50
+  for (var i = 0; i < coords.length - 1; i++) {
+    var mid = [(coords[i][0] + coords[i+1][0]) / 2, (coords[i][1] + coords[i+1][1]) / 2];
+    var arrowIcon = L.divIcon({
+      className: '',
+      html: '<div style="color:' + data.color + ';font-size:10px;opacity:0.8">→</div>',
+      iconSize: [12, 12], iconAnchor: [6, 6]
     });
-    map.add(arrow);
+    var arrow = L.marker(mid, { icon: arrowIcon, interactive: false }).addTo(map);
     currentLayers.push(arrow);
   }
-
-  map.setFitView(currentLayers, false, [60, 60, 60, 60]);
+  map.fitBounds(polyline.getBounds().pad(0.15));
 }
 
 showDay(1);
